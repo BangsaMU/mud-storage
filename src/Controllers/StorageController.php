@@ -23,11 +23,11 @@ class StorageController extends Controller
     {
     }
 
-    public function getListLokal(Request $request, $path = null, $backup = false)
+    public function getListLokal(Request $request, $folder = null, $backup = false)
     {
         $backup = $request->backup;
         $allMedia = null;
-        $path = $path ? '\\' . $path : ($request->path ? '\\' . $request->path : '');
+        $path = $folder ? '\\' . $folder : ($request->folder ? '\\' . $request->folder : '');
 
         try {
             $path = public_path('storage' . $path);
@@ -38,7 +38,7 @@ class StorageController extends Controller
         }
 
 
-        $sync = Http::pool(function (Pool $pool) use ($files, $backup, $path) {
+        $sync = Http::pool(function (Pool $pool) use ($files, $backup, $path, $folder) {
             $index = 1;
 
             foreach ($files as $key => $getpath) {
@@ -48,13 +48,15 @@ class StorageController extends Controller
                 $allMedia[$getpath->getrelativePath()]['file'][] = $getpath->getrelativePathname();
                 // $list_media[$key]['path'] = $getpath->getrelativePath();
                 $list_media[$key]['file'] = $getpath->getrelativePathname();
-                echo $getpath->getrelativePathname()."<br>";
+                echo $getpath->getrelativePathname() . "<br>";
 
                 $file_kirim = $getpath->getpathname();
                 $photo = fopen($file_kirim, 'r');
                 $file_name = $getpath->getfilename();
-                $getpath_file = $getpath->getrelativePath();
-                if (!empty($getpath->getrelativePath())) {
+                if (!empty($getpath->getrelativePath()) || $folder) {
+                    // $getpath_file = $folder;
+                    $getpath_file = empty($getpath->getrelativePath())?$folder:$folder.'\\'.$getpath->getrelativePath();
+                    // echo $getpath_file.'<<--<br>';
                     $param = [
                         'path_file' => $getpath_file,
                     ];
@@ -62,7 +64,7 @@ class StorageController extends Controller
                     $param = [];
                 };
 
-
+                // dd($param);
 
                 if ($backup == TRUE) {
                     $arrayPools[] = $pool->as($key . '-' . $getpath->getrelativePathname())->timeout(config('StorageConfig.curl.TIMEOUT', 5))->withOptions([
