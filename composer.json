@@ -1,18 +1,18 @@
 {
-    "name": "bangsamu/sso",
-    "description": "login menggunakan sso sendiri",
+    "name": "bangsamu/storage",
+    "description": "Backup menggunakan storage service",
     "type": "library",
     "license": "MIT",
     "require": {},
     "autoload": {
         "psr-4": {
-            "Bangsamu\\Sso\\": "src/"
+            "Bangsamu\\Storage\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Bangsamu\\Sso\\SsoPackageServiceProvider"
+                "Bangsamu\\Storage\\StoragePackageServiceProvider"
             ]
         }
     },

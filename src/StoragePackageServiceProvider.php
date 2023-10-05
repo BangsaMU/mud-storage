@@ -22,20 +22,20 @@ class StoragePackageServiceProvider extends ServiceProvider
         //
         $this->loadRoutesFrom(__DIR__.'/routes.php');
         $this->publishes([
-            __DIR__.'/../resources/config/SsoConfig.php' => config_path('SsoConfig.php'),
+            __DIR__.'/../resources/config/StorageConfig.php' => config_path('StorageConfig.php'),
         ]);
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'sso');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'storage');
 
         $this->publishes([
-            __DIR__.'/../resources/views' => resource_path('views/vendor/sso'),
+            __DIR__.'/../resources/views' => resource_path('views/vendor/storage'),
         ]);
 
         // $this->publishes([
         //     __DIR__.'/../resources/views/' => resource_path('views/adminlte/auth/login.blade.php'),
         // ]);
 
-        $this->publishes([
-            __DIR__.'/routes.php' => base_path('routes/sso.php'),
-        ]);
+        // $this->publishes([
+        //     __DIR__.'/routes.php' => base_path('routes/storage.php'),
+        // ]);
     }
 }
