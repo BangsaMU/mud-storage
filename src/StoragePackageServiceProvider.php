@@ -1,10 +1,10 @@
 <?php
 
-namespace Bangsamu\Sso;
+namespace Bangsamu\Storage;
 
 use Illuminate\Support\ServiceProvider;
 
-class SsoPackageServiceProvider extends ServiceProvider
+class StoragePackageServiceProvider extends ServiceProvider
 {
     /**
      * Register services.

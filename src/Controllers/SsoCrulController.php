@@ -2,7 +2,7 @@
 
 namespace Bangsamu\Sso\Controllers;
 
-use Illuminate\Http\Request;
+// use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 use Carbon\Carbon;
@@ -23,6 +23,11 @@ use App\Models\Session;
 
 use Illuminate\Encryption\Encrypter;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Cookie\CookieJar;
+
+
 class SsoCrulController
 {
     public $CHAT_ID;
@@ -36,27 +41,238 @@ class SsoCrulController
 
     function ssoCrul($action, $param = null, $token = null)
     {
-        dd(1);
+        $base_uri = 'https://cms.meindo.com';
+
+        // $client = new Client([
+        //     'verify' => false,
+        //     // Base URI is used with relative requests
+        //     // 'base_uri' => $base_uri,
+        //     // You can set any number of default request options.
+        //     'timeout'  => 2.0,
+        // ]);
+        // $headers = [
+        //     // 'Cookie' => 'INACTSESSID17db9fa0c5ba1cb5979b54663da2df35=gita.samudra%40meindo.com%2390A4REPlskfjsPdsklkdsf1fa659e9c4f8acc24d9ebecd4f82671; PHPSESSID=62ntlebaocv2sqf20gle05b7v1'
+        // ];
+        // $options = [
+        //     'multipart' => [
+        //         [
+        //             'name' => 'username',
+        //             'contents' => 'gita.samudra@meindo.com'
+        //         ],
+        //         [
+        //             'name' => 'password',
+        //             'contents' => 'Meindo12345'
+        //         ],
+        //         [
+        //             'name' => 'page',
+        //             'contents' => 'member'
+        //         ],
+        //         [
+        //             'name' => 'cmd',
+        //             'contents' => 'login'
+        //         ],
+        //         [
+        //             'name' => 'act',
+        //             'contents' => 'login'
+        //         ]
+        //     ]
+        // ];
+        // $request = new Request('POST', 'https://cms.meindo.com/main.php' );
+        // $res = $client->sendAsync($request, $options)->wait();
+        // echo $res->getBody();
+
+        // dd(99);
+
+
+        // $this->client = new GuzzleClient(['defaults' => [
+        //     'verify' => false
+        // ]]);
+        $client = new Client([
+            'verify' => false,
+            // Base URI is used with relative requests
+            'base_uri' => $base_uri,
+            // You can set any number of default request options.
+            'timeout'  => 2.0,
+        ]);
+
+        $cookieJar = CookieJar::fromArray([
+            'INACTSESSID17db9fa0c5ba1cb5979b54663da2df35' => 'gita.samudra%40meindo.com%2390A4REPlskfjsPdsklkdsf1fa659e9c4f8acc24d9ebecd4f82671'
+        ], 'cms.meindo.com');
+        $cookie_name='INACTSESSID17db9fa0c5ba1cb5979b54663da2df35';
+        $cookie_value='gita.samudra%40meindo.com%2390A4REPlskfjsPdsklkdsf1fa659e9c4f8acc24d9ebecd4f82671';
+        $cookie_domain='cms.meindo.com';
+        // $cookie_expiers= time() + (86400 * 30);
+        $cookie_expiers= [];
+        // setrawcookie($cookie_name, rawurlencode($cookie_value), 0,'/');
+        // setcookie($cookie_name, $cookie_value, 0, '/','cms.meindo.com',1,1); // 86400 = 1 day
+        // $client->request('GET', '/get', ['cookies' => $cookieJar]);
+
+        // $cookieJar = new \GuzzleHttp\Cookie\CookieJar;
+        $response = $client->request('POST', 'https://cms.meindo.com/main.php', [
+            'cookies' => $cookieJar,
+            'allow_redirects' => true,
+            'form_params' => [
+                'username' => 'gita.samudra@meindo.com',
+                'password' => 'Meindo12345',
+                'page' => 'member',
+                'cmd' => 'login',
+                'act' => 'login'
+            ]
+
+        ]);
+
+        // Send a request to https://foo.com/api/test
+        // $response = $client->request('GET', 'main.php');
+
+        // $request = $client->post('http://httpbin.org/post');
+
+        $body = $response->getBody();
+        echo $body->getContents();
+        dd(9);
+    }
+    function ssoCrulOLD($action, $param = null, $token = null)
+    {
+
+        $attr = [
+            'username' => 'gita.samudra@meindo.com',
+            'password' => 'Meindo12345',
+            'page' => 'member',
+            'cmd' => 'login',
+            'act' => 'login'
+        ];
+        define("DOC_ROOT", "c:");
+        //username and password of account
+        // $username = trim($values["email"]);
+        // $password = trim($values["password"]);
+        extract($attr);
+        //login form action url
+        $url = "https://cms.meindo.com/main.php";
+        $postinfo = "username=" . $username . "&password=" . $password . "&page=" . $page . "&cmd=" . $cmd . "&act=" . $act;
+
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_COOKIEJAR, "/tmp/cookieFileNameSamu");
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postinfo);
+
+        ob_start();      // prevent any output
+        curl_exec($ch); // execute the curl command
+        ob_end_clean();  // stop preventing output
+
+        curl_close($ch);
+        dd($ch);
+        unset($ch);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, "/tmp/cookieFileNameSamu");
+        curl_setopt($ch, CURLOPT_URL, "https://cms.meindo.com/main.php?page=member");
+
+        $buf2 = curl_exec($ch);
+
+        curl_close($ch);
+
+        echo "<PRE>" . htmlentities($buf2);
+        dd(9);
+
+        //set the directory for the cookie using defined document root var
+        $path = DOC_ROOT . "/tmp";
+        //build a unique path with every request to store. the info per user with custom func. I used this function to build unique paths based on member ID, that was for my use case. It can be a regular dir.
+        //$path = build_unique_path($path); // this was for my use case
+
+        $cookie_file_path = $path . "/cookies/cookiesamu.txt";
+        // dd($path,$cookie_file_path);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_NOBODY, false);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file_path);
+        //set the cookie the site has for certain features, this is optional
+        curl_setopt($ch, CURLOPT_COOKIE, "cookiename=0");
+        curl_setopt(
+            $ch,
+            CURLOPT_USERAGENT,
+            "Mozilla/5.0 (Windows; U; Windows NT 5.0; en-US; rv:1.7.12) Gecko/20050915 Firefox/1.0.7"
+        );
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_REFERER, $_SERVER['REQUEST_URI']);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 0);
+
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_POST, 1);
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, $attr);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postinfo);
+        curl_exec($ch);
+
+        //page with the content I want to grab
+        curl_setopt($ch, CURLOPT_URL, "https://cms.meindo.com/main.php?page=member");
+        //do stuff with the info with DomDocument() etc
+        $html = curl_exec($ch);
+        curl_close($ch);
+        echo $html;
+        dd(2, $ch);
+
+        // 'username' => 'gita.samudra@meindo.com',
+        // 'password' => 'Meindo12345',
+        // 'page' => 'member',
+        // 'cmd' => 'login',
+        // 'act' => 'login'
+        $curl = curl_init();
+        // Set some options - we are passing in a useragent too here
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => 1,
+            CURLOPT_URL => 'https://cms.meindo.com/main.php',
+            //  CURLOPT_USERAGENT => 'login',
+            CURLOPT_POST => 1,
+            CURLOPT_POSTFIELDS => $attr
+        ]);
+        $resp = curl_exec($curl);
+        curl_close($curl);
+        echo ($resp);
+        dd($resp);
+        exit();
+        $response = Http::timeout(config('SsoConfig.curl.TIMEOUT', 30))->withOptions([
+            'verify' => config('SsoConfig.curl.VERIFY', true),
+            // 'debug' => true,
+        ])
+            ->post('http://ams-meindo.test/login', [
+                'email' => 'gita.samudra@meindo.com',
+                'password' => 'Meindo12345',
+            ]);
+        // $response = Http::timeout(config('SsoConfig.curl.TIMEOUT', 30))->withOptions([
+        //     'verify' => config('SsoConfig.curl.VERIFY', false),
+        // ])->post(config('SsoConfig.main.URL', url('/')) . '/auth_login', $data);
+
+        dd($response->object());
+
         // Send user/password to the login page so that we get new cookies.
-        $curl = curl_init('http://ams-meindo.test/login');
+        // https://cms.meindo.com/main.php?page=member&cmd=logout&act=logout
+        $curl = curl_init('https://cms.meindo.com/main.php');
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($curl, CURLOPT_COOKIEJAR, '/tmp/cookies'); // cookies get stored in this file
         curl_setopt($curl, CURLOPT_POSTFIELDS, [
-            'email' => 'hatur.cms@gmail.com',
-            'password' => '11111111',
-            '_token' => '9gaeZ69hZry512mh6gVlE9EPKKf5QorIxV0pGtwe',
+            'username' => 'gita.samudra@meindo.com',
+            'password' => 'Meindo12345',
+            'page' => 'member',
+            'cmd' => 'login',
+            'act' => 'login'
         ]);
         // curl_setopt(...);
         curl_exec($curl);
         curl_close($curl);
 
         // Send the cookies we just saved to the data page you want
-        $curl = curl_init('http://ams-meindo.test/home');
+        $curl = curl_init('https://cms.meindo.com/main.php?page=member');
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($curl, CURLOPT_COOKIEFILE, '/tmp/cookies'); // cookies in this file get sent
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         // curl_setopt(...);
         $page = curl_exec($curl);
+        dd($page);
     }
     /**
      * Fungsi untuk setup ke url api telgram
