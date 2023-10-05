@@ -48,6 +48,7 @@ class StorageController extends Controller
                 $allMedia[$getpath->getrelativePath()]['file'][] = $getpath->getrelativePathname();
                 // $list_media[$key]['path'] = $getpath->getrelativePath();
                 $list_media[$key]['file'] = $getpath->getrelativePathname();
+                echo $getpath->getrelativePathname()."<br>";
 
                 $file_kirim = $getpath->getpathname();
                 $photo = fopen($file_kirim, 'r');
