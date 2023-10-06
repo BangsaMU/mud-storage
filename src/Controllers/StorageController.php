@@ -50,13 +50,10 @@ class StorageController extends Controller
                 $list_media[$key]['file'] = $getpath->getrelativePathname();
                 echo $getpath->getrelativePathname() . "<br>";
 
-                $file_kirim = $getpath->getpathname();
-                // $photo = fopen($file_kirim, 'r');
-                $photo = file_get_contents($file_kirim, 'r');
                 $file_name = $getpath->getfilename();
                 if (!empty($getpath->getrelativePath()) || $folder) {
                     // $getpath_file = $folder;
-                    $getpath_file = empty($getpath->getrelativePath())?$folder:$folder.'\\'.$getpath->getrelativePath();
+                    $getpath_file = empty($getpath->getrelativePath()) ? $folder : $folder . '\\' . $getpath->getrelativePath();
                     // echo $getpath_file.'<<--<br>';
                     $param = [
                         'path_file' => $getpath_file,
@@ -68,6 +65,11 @@ class StorageController extends Controller
                 // dd($param);
 
                 if ($backup == TRUE) {
+
+                    $file_kirim = $getpath->getpathname();
+                    // $photo = fopen($file_kirim, 'r');
+                    $photo = file_get_contents($file_kirim);
+
                     $arrayPools[] = $pool->as($key . '-' . $getpath->getrelativePathname())->timeout(config('StorageConfig.curl.TIMEOUT', 5))->withOptions([
                         'verify' => config('StorageConfig.curl.VERIFY', false),
                     ])->attach(
