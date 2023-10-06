@@ -28,6 +28,8 @@ class StorageController extends Controller
         $backup = $request->backup;
         $allMedia = null;
         $path = $folder ? '\\' . $folder : ($request->folder ? '\\' . $request->folder : '');
+        $folder = $path;
+        // dd($folder);
 
         try {
             $path = public_path('storage' . $path);
