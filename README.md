@@ -1,3 +1,3 @@
 # sso
 
-Integrasikan CLAY dengan fitur storage v1.0.1
+Integrasikan CLAY dengan fitur storage v1.0.2

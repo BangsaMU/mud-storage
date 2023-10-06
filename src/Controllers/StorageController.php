@@ -44,35 +44,42 @@ class StorageController extends Controller
             $index = 1;
 
             foreach ($files as $key => $getpath) {
+                // dd($getpath->getextension()); //jpg
                 $file = pathinfo($getpath);
                 $a = $getpath->getrelativePathname();
                 $allMedia[$getpath->getrelativePath()]['path'] = $getpath->getrelativePath();
                 $allMedia[$getpath->getrelativePath()]['file'][] = $getpath->getrelativePathname();
                 // $list_media[$key]['path'] = $getpath->getrelativePath();
                 $list_media[$key]['file'] = $getpath->getrelativePathname();
-                echo $getpath->getrelativePathname() . "<br>";
 
-                $file_name = $getpath->getfilename();
-                if (!empty($getpath->getrelativePath()) || $folder) {
-                    // $getpath_file = $folder;
-                    $getpath_file = empty($getpath->getrelativePath()) ? $folder : $folder . '\\' . $getpath->getrelativePath();
-                    // echo $getpath_file.'<<--<br>';
-                    $param = [
-                        'path_file' => $getpath_file,
-                    ];
-                } else {
-                    $param = [];
-                };
+                if ($backup == FALSE) {
+                    echo $getpath->getrelativePathname() . "<br>";
+                }
 
-                // dd($param);
-
-                if ($backup == TRUE) {
+                if ($backup == TRUE && $getpath->getextension() == 'jpg') { //limit file upload
 
                     $file_kirim = $getpath->getpathname();
                     // $photo = fopen($file_kirim, 'r');
                     $photo = file_get_contents($file_kirim);
+                    $hash_file = hash_file('md5', $file_kirim);
 
-                    $arrayPools[] = $pool->as($key . '-' . $getpath->getrelativePathname())->timeout(config('StorageConfig.curl.TIMEOUT', 5))->withOptions([
+
+                    $file_name = $getpath->getfilename();
+                    if (!empty($getpath->getrelativePath()) || $folder) {
+                        // $getpath_file = $folder;
+                        $getpath_file = empty($getpath->getrelativePath()) ? $folder : $folder . '\\' . $getpath->getrelativePath();
+                        // echo $getpath_file.'<<--<br>';
+                        $param = [
+                            'path_file' => $getpath_file,
+                            'hash_file' => $hash_file,
+                        ];
+                    } else {
+                        $param = [
+                            'hash_file' => $hash_file,
+                        ];
+                    };
+
+                    $arrayPools[] = $pool->as($key . '-' . $getpath->getrelativePathname())->timeout(config('StorageConfig.curl.TIMEOUT', 3600))->withOptions([
                         'verify' => config('StorageConfig.curl.VERIFY', false),
                     ])->attach(
                         'file',
@@ -98,19 +105,21 @@ class StorageController extends Controller
 
 
         foreach ($sync as $key => $respond) {
-            if ($respond->ok()) {
-                // dd($respond->object());
-                $storage_sukses[$key][] = $respond->object()->file->path;
-                $file_csv = $path . "/storage_sukses.csv";
-                self::writeOutput($file_csv, $storage_sukses);
-            } else {
-                $storage_error[$key][] = $respond->object()->message;
-                $file_csv = $path . "/storage_error.csv";
-                self::writeOutput($file_csv, $storage_error);
-            };
-            // $files = File::allFiles($path);
             try {
+                if ($respond->successful()) {
+                    // dd($respond->object());
+                    $storage_sukses[$key][] = $respond->object()->file->path;
+                    $file_csv = $path . "/storage_sukses.csv";
+                    self::writeOutput($file_csv, $storage_sukses);
+                } else {
+                    $storage_error[$key][] = $respond->object()->message;
+                    $file_csv = $path . "/storage_error.csv";
+                    self::writeOutput($file_csv, $storage_error);
+                };
+                // $files = File::allFiles($path);
             } catch (\Exception $e) {
+                $respond->throw();
+                dd($e->getMessage());
                 // $files = [];
             }
         }
