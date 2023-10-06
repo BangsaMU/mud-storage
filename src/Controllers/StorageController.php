@@ -56,7 +56,8 @@ class StorageController extends Controller
                     echo $getpath->getrelativePathname() . "<br>";
                 }
 
-                if ($backup == TRUE && $getpath->getextension() == 'jpg') { //limit file upload
+                // if ($backup == TRUE && $getpath->getextension() == 'jpg') { //limit file upload
+                if ($backup == TRUE) { //limit file upload
 
                     $file_kirim = $getpath->getpathname();
                     // $photo = fopen($file_kirim, 'r');
@@ -86,6 +87,7 @@ class StorageController extends Controller
                         $photo,
                         $file_name
                     )->post(config('StorageConfig.main.URL', 'http://localhost:8080/api/upload') . '?token=' . config('StorageConfig.main.TOKEN', 'demo123'), $param);
+                    echo $index.') Upload: '.$file_name."<br>";
                 }
                 $index++;
                 // return $arrayPools;
