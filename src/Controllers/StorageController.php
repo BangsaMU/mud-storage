@@ -51,7 +51,8 @@ class StorageController extends Controller
                 echo $getpath->getrelativePathname() . "<br>";
 
                 $file_kirim = $getpath->getpathname();
-                $photo = fopen($file_kirim, 'r');
+                // $photo = fopen($file_kirim, 'r');
+                $photo = file_get_contents($file_kirim, 'r');
                 $file_name = $getpath->getfilename();
                 if (!empty($getpath->getrelativePath()) || $folder) {
                     // $getpath_file = $folder;
