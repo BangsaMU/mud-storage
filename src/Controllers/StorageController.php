@@ -40,6 +40,28 @@ class StorageController extends Controller
         }
 
 
+        self::uploadSync($files, $backup, $path, $folder);
+
+
+
+        return $backup; // it will return the server IP if the client IP is not found using this method.
+    }
+
+    public function writeOutput($file_csv, $data)
+    {
+        if (isset($data)) {
+            $fp = fopen($file_csv, 'w');
+            foreach ($data as $fields) {
+                fputcsv($fp, $fields);
+            }
+            fclose($fp);
+        }
+    }
+
+
+
+    private function uploadSync($files, $backup, $path, $folder)
+    {
         $sync = Http::pool(function (Pool $pool) use ($files, $backup, $path, $folder) {
             $index = 1;
 
@@ -57,7 +79,7 @@ class StorageController extends Controller
                 }
 
                 // if ($backup == TRUE && $getpath->getextension() == 'jpg') { //limit file upload
-                if ($backup == TRUE) { //limit file upload
+                if ($backup == TRUE && $getpath->getextension() != 'zip') { //limit file upload
 
                     $file_kirim = $getpath->getpathname();
                     // $photo = fopen($file_kirim, 'r');
@@ -87,7 +109,7 @@ class StorageController extends Controller
                         $photo,
                         $file_name
                     )->post(config('StorageConfig.main.URL', 'http://localhost:8080/api/upload') . '?token=' . config('StorageConfig.main.TOKEN', 'demo123'), $param);
-                    echo $index.') Upload: '.$file_name."<br>";
+                    echo $index . ') Upload: ' . $file_name . "<br>";
                 }
                 $index++;
                 // return $arrayPools;
@@ -125,24 +147,7 @@ class StorageController extends Controller
                 // $files = [];
             }
         }
-
-
-
-        return $backup; // it will return the server IP if the client IP is not found using this method.
     }
-
-    public function writeOutput($file_csv, $data)
-    {
-        if (isset($data)) {
-            $fp = fopen($file_csv, 'w');
-            foreach ($data as $fields) {
-                fputcsv($fp, $fields);
-            }
-            fclose($fp);
-        }
-    }
-
-
 
     private function generateRandomString($n)
     {
