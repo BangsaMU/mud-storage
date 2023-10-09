@@ -3,6 +3,8 @@
 namespace Bangsamu\Storage;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Log;
 
 class StoragePackageServiceProvider extends ServiceProvider
 {
@@ -19,15 +21,47 @@ class StoragePackageServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        //buat scredule
+        $this->app->booted(function () {
+            // $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
+            //     $schedule->call(function () {
+            //         //Pengecekan apakah cronjob berhasil atau tidak
+            //         //Mencatat info log
+            //         Log::info('user: sys url: ' . url()->current() . ' message:BEAT STORAGE ' . app()->environment());
+            //     })->everyMinute();
+            // });
+            $schedule = $this->app->make(Schedule::class);
+            // $schedule->command('some:command')->everyMinute();
+            if (app()->environment() != 'production') {
+                $schedule->call(function () {
+                    //Pengecekan apakah cronjob berhasil atau tidak
+                    //Mencatat info log
+                    // Log::info('user: sys url: ' . url()->current() . ' message:BEAT STORAGE ' . app()->environment());
+                })->name('test-schedule')->withoutOverlapping()
+                    ->everyMinute();
+            }
+
+            /*akan melakukan backup tengah malam setiap hari log activity dari H -1 */
+            // $schedule->call('Bangsamu\Storage\Controllers\StorageController@log', ['folder' => 'parameter3', 'backup' => true])
+            //     ->name('cron-storage-log')
+            //     ->withoutOverlapping()
+            //     ->everyMinute()
+            //     ->appendOutputTo(storage_path('logs/schedule.log'));
+            $schedule->call('Bangsamu\Storage\Controllers\StorageController@getListLokal', ['backup' => true])
+                ->name('cron-storage-all')
+                ->withoutOverlapping()
+                ->daily()
+                ->appendOutputTo(storage_path('logs/schedule.log'));
+        });
         //
-        $this->loadRoutesFrom(__DIR__.'/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/routes.php');
         $this->publishes([
-            __DIR__.'/../resources/config/StorageConfig.php' => config_path('StorageConfig.php'),
+            __DIR__ . '/../resources/config/StorageConfig.php' => config_path('StorageConfig.php'),
         ]);
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'storage');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'storage');
 
         $this->publishes([
-            __DIR__.'/../resources/views' => resource_path('views/vendor/storage'),
+            __DIR__ . '/../resources/views' => resource_path('views/vendor/storage'),
         ]);
 
         // $this->publishes([

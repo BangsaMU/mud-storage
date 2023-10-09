@@ -23,9 +23,14 @@ class StorageController extends Controller
     {
     }
 
+    public function log(Request $request, $folder = null, $backup = false)
+    {
+        Log::info(json_encode($request->all()) . $folder . '-' . $backup . ' user: sys url: ' . url()->current() . ' message:BEAT STORAGE ' . app()->environment());
+    }
+
     public function getListLokal(Request $request, $folder = null, $backup = false)
     {
-        $backup = $request->backup;
+        $backup = $backup ?? $request->backup;
         $allMedia = null;
         $path = $folder ? '\\' . $folder : ($request->folder ? '\\' . $request->folder : '');
         $folder = $path;
@@ -97,6 +102,7 @@ class StorageController extends Controller
                             'hash_file' => $hash_file,
                         ];
                     } else {
+                        $getpath_file = '';
                         $param = [
                             'hash_file' => $hash_file,
                         ];
@@ -110,6 +116,7 @@ class StorageController extends Controller
                         $file_name
                     )->post(config('StorageConfig.main.URL', 'http://localhost:8080/api/upload') . '?token=' . config('StorageConfig.main.TOKEN', 'demo123'), $param);
                     echo $index . ') Upload: ' . $file_name . "<br>";
+                    Log::info('user: sys url: ' . url()->current() . ' message: ' . $index . ') Upload: ' . $getpath_file . '\\' . $file_name);
                 }
                 $index++;
                 // return $arrayPools;
