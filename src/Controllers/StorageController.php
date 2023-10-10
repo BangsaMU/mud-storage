@@ -113,11 +113,11 @@ class StorageController extends Controller
         // dd(1,$list_file->toArray());
 
         // self::uploadSync($files, $backup, $path, $folder);
-        // if($backup){
-        $file_bup = self::uploadSyncDB($backup, $path, $folder);
-        // }
+        if ($backup) {
+            $file_bup = self::uploadSyncDB($backup, $path, $folder);
+        }
 
-        return dd($file_bup);
+        return dd($list_file->toArray());
     }
 
     public function writeOutput($file_csv, $data)
@@ -139,9 +139,9 @@ class StorageController extends Controller
         $list_BL = explode(",", config('StorageConfig.main.BACKUP_FILE_BL'));
         $backup = true;
         $files = BackupLokal::where('upload', '=', '0')
-        ->whereIn('getextension', $list_WL)
-        ->whereNotIn('getextension', $list_BL)
-        ->limit(10)->get();
+            ->whereIn('getextension', $list_WL)
+            ->whereNotIn('getextension', $list_BL)
+            ->limit(10)->get();
         // dd($files);
         $sync = Http::pool(function (Pool $pool) use ($files, $backup, $path, $folder, $list_WL, $list_BL) {
             $index = 1;
