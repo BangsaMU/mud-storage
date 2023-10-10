@@ -47,10 +47,11 @@ class StoragePackageServiceProvider extends ServiceProvider
             //     ->withoutOverlapping()
             //     ->everyMinute()
             //     ->appendOutputTo(storage_path('logs/schedule.log'));
-            $schedule->call('Bangsamu\Storage\Controllers\StorageController@getListLokal', ['backup' => true])
+
+            $schedule->call('Bangsamu\Storage\Controllers\StorageController@getListLokal', ['folder' => config('StorageConfig.main.FOLDER'),'backup' => config('StorageConfig.main.ACTIVE')])
                 ->name('cron-storage-all')
                 ->withoutOverlapping()
-                ->daily()
+                ->everyMinute()
                 ->appendOutputTo(storage_path('logs/schedule.log'));
         });
         //
@@ -58,11 +59,11 @@ class StoragePackageServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../resources/config/StorageConfig.php' => config_path('StorageConfig.php'),
         ]);
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'storage');
+        // $this->loadViewsFrom(__DIR__ . '/../resources/views', 'storage');
 
-        $this->publishes([
-            __DIR__ . '/../resources/views' => resource_path('views/vendor/storage'),
-        ]);
+        // $this->publishes([
+        //     __DIR__ . '/../resources/views' => resource_path('views/vendor/storage'),
+        // ]);
 
         // $this->publishes([
         //     __DIR__.'/../resources/views/' => resource_path('views/adminlte/auth/login.blade.php'),

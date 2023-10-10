@@ -23,9 +23,14 @@ class StorageController extends Controller
     {
     }
 
-    public function log(Request $request, $folder = null, $backup = false)
+    public function log($message = 'STORAGE logs')
     {
-        Log::info(json_encode($request->all()) . $folder . '-' . $backup . ' user: sys url: ' . url()->current() . ' message:BEAT STORAGE ' . app()->environment());
+        Log::build([
+            'driver' => 'single',
+            'path' => storage_path('logs/storage.log'),
+        ])->info($message);
+
+        // Log::info(json_encode($request->all()) . $folder . '-' . $backup . ' user: sys url: ' . url()->current() . ' message:BEAT STORAGE ' . app()->environment());
     }
 
     public function getListLokal(Request $request, $folder = null, $backup = false)
@@ -34,11 +39,10 @@ class StorageController extends Controller
         $allMedia = null;
         $path = $folder ? '\\' . $folder : ($request->folder ? '\\' . $request->folder : '');
         $folder = $path;
-        // dd($folder);
 
         try {
             $path = public_path('storage' . $path);
-            // dd($path);
+
             $files = File::allFiles($path);
         } catch (\Exception $e) {
             $files = [];
@@ -83,20 +87,25 @@ class StorageController extends Controller
                     echo $getpath->getrelativePathname() . "<br>";
                 }
 
-                // if ($backup == TRUE && $getpath->getextension() == 'jpg') { //limit file upload
-                if ($backup == TRUE && $getpath->getextension() != 'zip') { //limit file upload
+                $list_WL = explode(",", config('StorageConfig.main.BACKUP_FILE_WL'));
+                $list_BL = explode(",", config('StorageConfig.main.BACKUP_FILE_BL'));
+
+                if ($backup == TRUE && in_array($getpath->getextension(), $list_WL) && !in_array($getpath->getextension(), $list_BL)) { //limit file upload
 
                     $file_kirim = $getpath->getpathname();
-                    // $photo = fopen($file_kirim, 'r');
-                    $photo = file_get_contents($file_kirim);
-                    $hash_file = hash_file('md5', $file_kirim);
+                    if (config('StorageConfig.main.ATTACH_METHOD') == 'fopen') {
+                        $photo = fopen($file_kirim, 'r');
+                    } else {
+                        $photo = file_get_contents($file_kirim);
+                    }
 
+                    /*validasi file untuk upload jika berbeda hasil upload di service storage akan di hapus*/
+                    $hash_file = hash_file('md5', $file_kirim);
 
                     $file_name = $getpath->getfilename();
                     if (!empty($getpath->getrelativePath()) || $folder) {
                         // $getpath_file = $folder;
                         $getpath_file = empty($getpath->getrelativePath()) ? $folder : $folder . '\\' . $getpath->getrelativePath();
-                        // echo $getpath_file.'<<--<br>';
                         $param = [
                             'path_file' => $getpath_file,
                             'hash_file' => $hash_file,
@@ -108,7 +117,7 @@ class StorageController extends Controller
                         ];
                     };
 
-                    $arrayPools[] = $pool->as($key . '-' . $getpath->getrelativePathname())->timeout(config('StorageConfig.curl.TIMEOUT', 3600))->withOptions([
+                    $arrayPools[] = $pool->as($index)->timeout(config('StorageConfig.curl.TIMEOUT', 3600))->withOptions([
                         'verify' => config('StorageConfig.curl.VERIFY', false),
                     ])->attach(
                         'file',
@@ -116,7 +125,9 @@ class StorageController extends Controller
                         $file_name
                     )->post(config('StorageConfig.main.URL', 'http://localhost:8080/api/upload') . '?token=' . config('StorageConfig.main.TOKEN', 'demo123'), $param);
                     echo $index . ') Upload: ' . $file_name . "<br>";
-                    Log::info('user: sys url: ' . url()->current() . ' message: ' . $index . ') Upload: ' . $getpath_file . '\\' . $file_name);
+                    self::log('user: sys url: ' . url()->current() . ' message: ' . $index . ') Upload: ' . $getpath_file . '\\' . $file_name);
+                    // self::log('respond ' . $index .  ': '.$pool);
+                    // dd($pool->successful());
                 }
                 $index++;
                 // return $arrayPools;
@@ -134,24 +145,28 @@ class StorageController extends Controller
             }
         });
 
-
         foreach ($sync as $key => $respond) {
             try {
-                if ($respond->successful()) {
-                    // dd($respond->object());
-                    $storage_sukses[$key][] = $respond->object()->file->path;
-                    $file_csv = $path . "/storage_sukses.csv";
-                    self::writeOutput($file_csv, $storage_sukses);
-                } else {
-                    $storage_error[$key][] = $respond->object()->message;
-                    $file_csv = $path . "/storage_error.csv";
-                    self::writeOutput($file_csv, $storage_error);
+                if (method_exists($respond,'gethandlerContext')) {
+                    self::log('user: sys url: ' . url()->current() . ' message: ' . $respond->gethandlerContext()["error"]);
+                }
+                else {
+                    if ($respond->successful()) {
+                        $storage_sukses[$key][] = $respond->object()->file->path;
+                        $file_csv = $path . "/storage_sukses.csv";
+                        self::writeOutput($file_csv, $storage_sukses);
+                        self::log('user: sys url: ' . url()->current() . ' message: ' . $respond->object()->file->path);
+                    } else {
+                        self::log('user: sys url: ' . url()->current() . ' message: ' . $respond->object()->message);
+                        $storage_error[$key][] = $respond->object()->message;
+                        $file_csv = $path . "/storage_error.csv";
+                        self::writeOutput($file_csv, $storage_error);
+                    };
                 };
                 // $files = File::allFiles($path);
             } catch (\Exception $e) {
                 $respond->throw();
-                dd($e->getMessage());
-                // $files = [];
+                self::log('Exception ' . $e->getMessage());
             }
         }
     }
