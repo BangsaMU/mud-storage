@@ -61,6 +61,9 @@ class StoragePackageServiceProvider extends ServiceProvider
         ]);
         // $this->loadViewsFrom(__DIR__ . '/../resources/views', 'storage');
 
+        $this->publishes([
+            __DIR__ . '/../resources/db/' => database_path('./'),
+        ]);
         // $this->publishes([
         //     __DIR__ . '/../resources/views' => resource_path('views/vendor/storage'),
         // ]);
