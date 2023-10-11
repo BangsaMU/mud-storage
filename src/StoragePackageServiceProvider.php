@@ -48,11 +48,17 @@ class StoragePackageServiceProvider extends ServiceProvider
             //     ->everyMinute()
             //     ->appendOutputTo(storage_path('logs/schedule.log'));
 
-            $schedule->call('Bangsamu\Storage\Controllers\StorageController@getListLokal', ['folder' => config('StorageConfig.main.FOLDER'),'backup' => config('StorageConfig.main.ACTIVE')])
-                ->name('cron-storage-all')
+            $schedule->call('Bangsamu\Storage\Controllers\StorageController@scanDir', ['folder' => config('StorageConfig.main.FOLDER'), 'scan' => false, 'backup' => config('StorageConfig.main.ACTIVE')])
+                ->name('cron-storage-scan')
                 ->withoutOverlapping()
                 ->everyMinute()
                 ->appendOutputTo(storage_path('logs/schedule.log'));
+
+            // $schedule->call('Bangsamu\Storage\Controllers\StorageController@getListLokal', ['folder' => config('StorageConfig.main.FOLDER'), 'backup' => config('StorageConfig.main.ACTIVE')])
+            //     ->name('cron-storage-all')
+            //     ->withoutOverlapping()
+            //     ->everyMinute()
+            //     ->appendOutputTo(storage_path('logs/schedule.log'));
         });
         //
         $this->loadRoutesFrom(__DIR__ . '/routes.php');
