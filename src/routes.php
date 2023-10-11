@@ -10,3 +10,6 @@ Route::get('mud-storage', function () {
 
 Route::get('storage-list-offline/{path?}',  [Bangsamu\Storage\Controllers\StorageController::class, 'getListLokal'])
     ->name('storage-list-offline');
+
+Route::get('storage-scan/{path?}',  [Bangsamu\Storage\Controllers\StorageController::class, 'scanDir'])
+    ->name('storage-scan');

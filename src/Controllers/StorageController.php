@@ -48,6 +48,8 @@ class StorageController extends Controller
                 $table->string('getrelativePath', 255)->nullable();
                 $table->string('getrelativePathname', 255)->nullable();
                 $table->string('getextension', 10)->nullable();
+                $table->string('jenis', 1)->nullable();
+                $table->string('scan', 1)->nullable()->default(0);
                 $table->timestamps();
             });
         }
@@ -57,6 +59,7 @@ class StorageController extends Controller
 
     public function saveDB($list = [])
     {
+        // dd($list);
         self::installDB();
         // $users = DB::connection('sqlite')->select(...);
         // $products = \DB::connection('sqlite')->table("table1")->get();
@@ -69,6 +72,7 @@ class StorageController extends Controller
             $data[$key]['getrelativePath'] = $val->getrelativePath();
             $data[$key]['getrelativePathname'] = $val->getrelativePathname();
             $data[$key]['getextension'] = $val->getextension();
+            $data[$key]['jenis'] = $val->getextension();
         }
         // dd($data);
 
@@ -90,6 +94,92 @@ class StorageController extends Controller
         $products = BackupLokal::all();
         // dd(3, $products);
         return $products;
+    }
+
+    public function saveScanDB($list = [])
+    {
+        // dd($list);
+        self::installDB();
+        // $users = DB::connection('sqlite')->select(...);
+        // $products = \DB::connection('sqlite')->table("table1")->get();
+
+        foreach ($list as $key => $val) {
+            $data[$key]['hash_file'] = @$val['hash_file'];
+            $data[$key]['getpathname'] = @$val['getpathname'];
+            $data[$key]['getfilename'] = @$val['getfilename'];
+            $data[$key]['getrelativePath'] = @$val['getrelativePath'];
+            $data[$key]['getrelativePathname'] = @$val['getrelativePathname'];
+            $data[$key]['getextension'] = @$val['getextension'];
+            $data[$key]['jenis'] = @$val['jenis'];
+            $data[$key]['scan'] = @$val['scan'] ?? 0;
+        }
+
+        BackupLokal::upsert($data, ['getpathname', 'hash_file'], ['getpathname']);
+        $storage_list['file'] = BackupLokal::where('jenis', '=', 'F')->get();
+        $storage_list['dir'] = BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->get();
+        // dd($data,$list,3, $storage_list);
+        return $storage_list;
+    }
+
+    public function scanDir(Request $request, $folder = null, $backup = false)
+    {
+
+        $backup = $backup ?? $request->backup;
+        $allMedia = null;
+        $folder_cek =  $folder ? $folder : ($request->folder ? $request->folder : '');
+        if ($folder_cek) {
+            BackupLokal::where('getrelativePath', '=', $folder_cek)->where('jenis', '=', 'D')->update(['scan' => 1]);
+        }
+
+        $path = DIRECTORY_SEPARATOR  . $folder_cek;
+
+        $folder = $folder_cek;
+
+        $dir = public_path('storage' . $path);
+
+        $files = scandir($dir);
+        $files_n = count($files) - 1;
+        $i = 0;
+        // dd($files,$files_n);
+        while ($i <= $files_n) {
+            // "is_dir" only works from top directory, so append the $dir before the file
+            $temp = explode('.', $files[$i]);
+            $extension = end($temp);
+            if ($files[$i] != '.' && $files[$i] != '..') {
+                $MyFileType[$i]['getfilename'] = $files[$i]; // D for Directory
+                $MyFileType[$i]['getpathname'] = $dir . DIRECTORY_SEPARATOR . $MyFileType[$i]['getfilename']; // D for Directory
+
+                // $MyFileType[$i]['getpathname'] = str_replace('//','/',$MyFileType[$i]['getpathname']);
+                // $MyFileType[$i]['getpathname'] = str_replace('\\','\\',$MyFileType[$i]['getpathname']);
+                $MyFileType[$i]['getpathname'] = str_replace('\\\\', '\\', $MyFileType[$i]['getpathname']);
+                $MyFileType[$i]['getpathname'] = str_replace('/', DIRECTORY_SEPARATOR, $MyFileType[$i]['getpathname']);
+
+                if (is_dir($MyFileType[$i]['getpathname'])) {
+                    $MyFileType[$i]['getrelativePath'] = $folder . DIRECTORY_SEPARATOR . $MyFileType[$i]['getfilename']; // D for Directory
+                    $MyFileType[$i]['jenis'] = "D"; // D for Directory
+                    // $MyFileType[$i]['scan'] = 0; // F for File
+                } else {
+                    $hash_file = hash_file('md5', $MyFileType[$i]['getpathname']);
+                    $MyFileType[$i]['hash_file'] = $hash_file;
+                    $MyFileType[$i]['getrelativePathname'] =  $folder . DIRECTORY_SEPARATOR . $MyFileType[$i]['getfilename']; // D for Directory
+                    $MyFileType[$i]['getrelativePath'] =  $folder; // D for Directory
+                    $MyFileType[$i]['getextension'] = $extension;
+                    $MyFileType[$i]['jenis'] = "F"; // F for File
+                    $MyFileType[$i]['scan'] = 1; // F for File
+                }
+                echo '<br>' . $i . '. ' . $MyFileType[$i]['jenis'] . '. ' . $MyFileType[$i]['getfilename'];
+            }
+            // print itemNo, itemType(D/F) and itemname
+            $i++;
+        }
+
+        $list_scan_db = self::saveScanDB($MyFileType);
+        if (count($list_scan_db['dir']) > 0) {
+            // dd('scan folder '.$list_scan_db['dir'][0]['getrelativePath']);
+            $folder =  $list_scan_db['dir'][0]['getrelativePath'];
+            self::scanDir($request, $folder);
+        }
+        // dd($MyFileType, $list_scan_db, count($list_scan_db['dir']));
     }
 
     public function getListLokal(Request $request, $folder = null, $backup = false)
