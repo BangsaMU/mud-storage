@@ -181,7 +181,7 @@ class StorageController extends Controller
                 self::scanDir($request, $folder);
             }
         } else {
-            $storage_list['dir'] = BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->get();
+            $list_scan_db['dir'] = BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->get();
             if (count($list_scan_db['dir']) > 0) {
                 // dd('scan folder '.$list_scan_db['dir'][0]['getrelativePath']);
                 $folder =  $list_scan_db['dir'][0]['getrelativePath'];
