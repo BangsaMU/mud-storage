@@ -1,5 +1,5 @@
 # STORAGE
-V1.0.9
+V1.0.10
 
 Integrasikan CLAY dengan service storage
 
@@ -9,3 +9,4 @@ Integrasikan CLAY dengan service storage
 - add fiture tabel backup untuk upload
 - add fitur scan dir save to DB
 - add fiture cek limit per folder
+- add bucker folder upload by APP_CODE
