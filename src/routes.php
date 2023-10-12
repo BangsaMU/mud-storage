@@ -13,3 +13,9 @@ Route::get('storage-list-offline/{path?}',  [Bangsamu\Storage\Controllers\Storag
 
 Route::get('storage-scan/{path?}',  [Bangsamu\Storage\Controllers\StorageController::class, 'scanDir'])
     ->name('storage-scan');
+
+Route::get('storage-scan-reset',  [Bangsamu\Storage\Controllers\StorageController::class, 'scanDirReset'])
+    ->name('storage-scan-reset');
+
+Route::get('storage-upload-db',  [Bangsamu\Storage\Controllers\StorageController::class, 'uploadSyncDB'])
+    ->name('storage-upload-db');

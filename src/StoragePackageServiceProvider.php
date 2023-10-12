@@ -46,19 +46,37 @@ class StoragePackageServiceProvider extends ServiceProvider
             //     ->name('cron-storage-log')
             //     ->withoutOverlapping()
             //     ->everyMinute()
-            //     ->appendOutputTo(storage_path('logs/schedule.log'));
-
-            $schedule->call('Bangsamu\Storage\Controllers\StorageController@scanDir', ['folder' => config('StorageConfig.main.FOLDER'), 'scan' => false, 'backup' => config('StorageConfig.main.ACTIVE')])
-                ->name('cron-storage-scan')
-                ->withoutOverlapping()
-                ->everyMinute()
-                ->appendOutputTo(storage_path('logs/schedule.log'));
+            //     ->sendOutputTo(storage_path('logs/schedule.log'));
 
             // $schedule->call('Bangsamu\Storage\Controllers\StorageController@getListLokal', ['folder' => config('StorageConfig.main.FOLDER'), 'backup' => config('StorageConfig.main.ACTIVE')])
             //     ->name('cron-storage-all')
             //     ->withoutOverlapping()
             //     ->everyMinute()
-            //     ->appendOutputTo(storage_path('logs/schedule.log'));
+            //     ->sendOutputTo(storage_path('logs/schedule.log'));
+
+
+            /*akan dilakukan scan folder setiap menit*/
+            $schedule->call('Bangsamu\Storage\Controllers\StorageController@scanDir', ['folder' => config('StorageConfig.main.FOLDER'), 'scan' => false])
+                ->name('cron-storage-scan')
+                ->withoutOverlapping()
+                ->everyMinute()
+                // ->everyFiveMinutes()
+                ->sendOutputTo(storage_path('logs/schedule.log'));
+
+            /*akan direset scan folder upalng setiap jam 9 pagi*/
+            $schedule->call('Bangsamu\Storage\Controllers\StorageController@storage-scan-reset')
+                ->name('cron-storage-scan-reset')
+                ->withoutOverlapping()
+                ->dailyAt('09:00')
+                ->sendOutputTo(storage_path('logs/schedule.log'));
+
+            /*akan dilakukan upload folder setiap menit*/
+            $schedule->call('Bangsamu\Storage\Controllers\StorageController@uploadSyncDB', ['folder' => config('StorageConfig.main.FOLDER'), 'backup' => true])
+                ->name('cron-storage-upload-db')
+                ->withoutOverlapping()
+                ->everyMinute()
+                // ->everyFiveMinutes()
+                ->sendOutputTo(storage_path('logs/schedule.log'));
         });
         //
         $this->loadRoutesFrom(__DIR__ . '/routes.php');
@@ -67,9 +85,9 @@ class StoragePackageServiceProvider extends ServiceProvider
         ]);
         // $this->loadViewsFrom(__DIR__ . '/../resources/views', 'storage');
 
-        $this->publishes([
-            __DIR__ . '/../resources/db/' => database_path('./'),
-        ]);
+        // $this->publishes([
+        //     __DIR__ . '/../resources/db/' => database_path('./'),
+        // ]);
         // $this->publishes([
         //     __DIR__ . '/../resources/views' => resource_path('views/vendor/storage'),
         // ]);
