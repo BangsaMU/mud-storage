@@ -51,6 +51,7 @@ class StorageController extends Controller
                 $table->string('jenis', 1)->nullable();
                 $table->string('scan', 1)->nullable()->default(0);
                 $table->string('url_storage', 255)->nullable();
+                $table->json('desc')->nullable();
                 $table->timestamps();
             });
         }
