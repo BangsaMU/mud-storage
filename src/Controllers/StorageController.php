@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Schema;
 
 use Bangsamu\Storage\Models\BackupLokal;
 
@@ -34,11 +35,18 @@ class StorageController extends Controller
         // Log::info(json_encode($request->all()) . $folder . '-' . $backup . ' user: sys url: ' . url()->current() . ' message:BEAT STORAGE ' . app()->environment());
     }
 
-    public function installDB()
+    public function cekDB($tabel = 'backup_lokal'): bool
     {
-        if (!\Schema::hasTable('backup_lokal')) {
+        $cek_tabel = Schema::hasTable($tabel);
+        return $cek_tabel;
+    }
+
+    public function installDB(): void
+    {
+        $cek_tabel = self::cekDB();
+        if ($cek_tabel == false) {
             /*tabel belum ada buat dulu*/
-            \Schema::create('backup_lokal', function ($table) {
+            Schema::create('backup_lokal', function ($table) {
                 $table->increments('id');
                 $table->string('upload', 10)->default(0);
                 $table->string('filemtime', 255)->nullable();
@@ -51,20 +59,15 @@ class StorageController extends Controller
                 $table->string('jenis', 1)->nullable();
                 $table->string('scan', 1)->nullable()->default(0);
                 $table->string('url_storage', 255)->nullable();
-                $table->json('desc')->nullable();
+                $table->text('description')->nullable();
                 $table->timestamps();
             });
         }
-        // $cek_tabel = \Schema::hasTable('backup_lokal');
-        // return $cek_tabel;
     }
 
     public function saveDB($list = [])
     {
-        // dd($list);
         self::installDB();
-        // $users = DB::connection('sqlite')->select(...);
-        // $products = \DB::connection('sqlite')->table("table1")->get();
 
         foreach ($list as $key => $val) {
             $hash_file = hash_file('md5', $val->getpathname());
@@ -98,30 +101,32 @@ class StorageController extends Controller
         return $products;
     }
 
-    public function saveScanDB($list = [])
+    public function saveScanDB($list = null, $get_list = true)
     {
-        // dd($list);
-        self::installDB();
-        // $users = DB::connection('sqlite')->select(...);
-        // $products = \DB::connection('sqlite')->table("table1")->get();
-
-        foreach ($list as $key => $val) {
-            $data[$key]['hash_file'] = @$val['hash_file'];
-            $data[$key]['getpathname'] = @$val['getpathname'];
-            $data[$key]['getfilename'] = @$val['getfilename'];
-            $data[$key]['getrelativePath'] = @$val['getrelativePath'];
-            $data[$key]['getrelativePathname'] = @$val['getrelativePathname'];
-            $data[$key]['getextension'] = @$val['getextension'];
-            $data[$key]['jenis'] = @$val['jenis'];
-            $data[$key]['scan'] = @$val['scan'] ?? 0;
-            $data[$key]['filemtime'] = @$val['filemtime'] ?? 0;
+        if ($list) {
+            // foreach ($list as $key => $val) {
+            //     $data[$key]['hash_file'] = @$val['hash_file'];
+            //     $data[$key]['getpathname'] = @$val['getpathname'];
+            //     $data[$key]['getfilename'] = @$val['getfilename'];
+            //     $data[$key]['getrelativePath'] = @$val['getrelativePath'];
+            //     $data[$key]['getrelativePathname'] = @$val['getrelativePathname'];
+            //     $data[$key]['getextension'] = @$val['getextension'];
+            //     $data[$key]['jenis'] = @$val['jenis'];
+            //     $data[$key]['scan'] = @$val['scan'] ?? 0;
+            //     $data[$key]['filemtime'] = @$val['filemtime'] ?? 0;
+            // }
+            if (!is_array($list)) {
+                $data = $list->toArray();
+            }
+            // dd($data);
+            BackupLokal::upsert($data, ['getpathname', 'jenis'], ['getpathname']);
         }
 
-        BackupLokal::upsert($data, ['getpathname', 'hash_file'], ['getpathname']);
-        $storage_list['file'] = BackupLokal::where('jenis', '=', 'F')->get();
-        $storage_list['dir'] = BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->get();
-        // dd($data,$list,3, $storage_list);
-        return $storage_list;
+        if ($get_list) {
+            $storage_list['file'] = BackupLokal::where('jenis', '=', 'F')->get();
+            $storage_list['dir'] = BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->get();
+            return $storage_list;
+        }
     }
 
     public function scanDirReset(Request $request, $folder = null, $scan = false, $backup = false)
@@ -133,23 +138,26 @@ class StorageController extends Controller
         echo 'reset scan folder ' . $scanDirReset;
     }
 
-    public function scanDir(Request $request, $folder = null, $scan = false)
+    public function scanDir(Request $request, $folder = null, $scan = null)
     {
         self::log('user: sys url: ' . url()->current() . ' message: run schedule scanDir');
         self::installDB();
-        $list_scan_db['dir'] = BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->limit(1)->get();
-        // dd($list_scan_db);
-        if (count($list_scan_db['dir']) > 0 && $scan == false) {
+
+        $list_scan_db_data = BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->limit(1);
+        $list_scan_db['dir'] = $list_scan_db_data->get();
+        $list_scan_db_dir =  $list_scan_db_data->count();
+
+        $folder_cek =  $folder ? $folder : ($request->folder ? $request->folder : '');
+        $scan_cek =  $scan ? $scan : ($request->scan ? $request->scan : false);
+
+        /*ambil satu folder dari DB yang akan di scan*/
+        if ($list_scan_db_dir > 0 && $scan_cek == false) {
             // dd(1);
             // dd('scan folder '.$list_scan_db['dir'][0]['getrelativePath']);
             $folder =  $list_scan_db['dir'][0]['getrelativePath'];
             self::scanDir($request, $folder, true);
-            // echo 1;
         } else {
-            // echo 2;
-
-            $allMedia = null;
-            $folder_cek =  $folder ? $folder : ($request->folder ? $request->folder : '');
+            /*scan data di folder langsung*/
             if ($folder_cek) {
                 BackupLokal::where('getrelativePath', '=', $folder_cek)->where('jenis', '=', 'D')->update(['scan' => 1]);
             }
@@ -160,23 +168,42 @@ class StorageController extends Controller
 
             $dir = public_path('storage' . $path);
 
-            $files = scandir($dir);
-            $files_n = count($files) - 1;
+            if (is_dir($dir)) {
+                $files = scandir($dir);
+                $files_n = count($files) - 1;
+            } else {
+                $files = 0;
+                $files_n = -1;
+            };
             $i = 0;
-            // dd($files,$files_n);
             while ($i <= $files_n) {
-                // "is_dir" only works from top directory, so append the $dir before the file
-                $temp = explode('.', $files[$i]);
-                $extension = end($temp);
-                if ($files[$i] != '.' && $files[$i] != '..') {
-                    $MyFileType[$i]['getfilename'] = $files[$i]; // D for Directory
-                    $MyFileType[$i]['getpathname'] = $dir . DIRECTORY_SEPARATOR . $MyFileType[$i]['getfilename']; // D for Directory
+                // dd(pathinfo($files[0], PATHINFO_EXTENSION), $files, $files_n);
+                // $temp = explode('.', $files[$i]);
+                // $extension = end($temp);
+                $getfilename = $files[$i];
+                $extension = pathinfo($getfilename, PATHINFO_EXTENSION);
 
-                    // $MyFileType[$i]['getpathname'] = str_replace('//','/',$MyFileType[$i]['getpathname']);
-                    // $MyFileType[$i]['getpathname'] = str_replace('\\','\\',$MyFileType[$i]['getpathname']);
-                    $MyFileType[$i]['getpathname'] = str_replace('\\\\', '\\', $MyFileType[$i]['getpathname']);
-                    $MyFileType[$i]['getpathname'] = str_replace('/', DIRECTORY_SEPARATOR, $MyFileType[$i]['getpathname']);
 
+                if ($getfilename != '.' && $getfilename != '..') {
+
+                    if ($getfilename) {
+                        $MyFileType[$i]['getfilename'] = null;
+                        $MyFileType[$i]['getpathname'] = null;
+                        $MyFileType[$i]['hash_file'] = null;
+                        $MyFileType[$i]['getrelativePathname'] = null;
+                        $MyFileType[$i]['getrelativePath'] = null;
+                        $MyFileType[$i]['getextension'] = null;
+                        $MyFileType[$i]['jenis'] = null;
+                        $MyFileType[$i]['filemtime'] = null;
+                        $MyFileType[$i]['scan'] = 0;
+                    }
+
+                    $MyFileType[$i]['getfilename'] = $getfilename;
+                    $MyFileType[$i]['getpathname'] = $dir . DIRECTORY_SEPARATOR . $MyFileType[$i]['getfilename'];
+                    $MyFileType[$i]['getpathname'] = str_replace('\\\\', '\\', $MyFileType[$i]['getpathname']); /*ubah doble backslash ke backslash*/
+                    $MyFileType[$i]['getpathname'] = str_replace('/', DIRECTORY_SEPARATOR, $MyFileType[$i]['getpathname']); /*ubah slash ke format slash sistem os*/
+
+                    /*cek folder bukan*/
                     if (is_dir($MyFileType[$i]['getpathname'])) {
                         $MyFileType[$i]['getrelativePath'] = $folder . DIRECTORY_SEPARATOR . $MyFileType[$i]['getfilename']; // D for Directory
                         $MyFileType[$i]['jenis'] = "D"; // D for Directory
@@ -204,30 +231,49 @@ class StorageController extends Controller
                         $MyFileType[$i]['filemtime'] = $cek_filemtime; // cek lasmodif
                         $MyFileType[$i]['scan'] = 1; // F for File
                     }
-                    if (count($list_scan_db['dir']) > 0 && $scan == true) {
+                    // dd(count($list_scan_db['dir']) > 0 && $scan_cek == true);
+                    // dd($list_scan_db['dir']->toArray());
+                    // $cek_count = count($list_scan_db['dir']);
 
-                        echo 'Scan::' . $MyFileType[$i]['getrelativePath'] . '<br>';
-                        echo $i . '. ' . $MyFileType[$i]['jenis'] . '. ' . $MyFileType[$i]['getfilename'];
+                    // $cek_count =  BackupLokal::where('jenis', '=', 'D')->where('scan', '=', '0')->limit(1)->count();
+                    // dd($list_scan_db_dir);
+                    if ($scan_cek == true) {
+                        // echo 'Scan::' . $folder_cek . ' ' . $MyFileType[$i]['getrelativePath'] . '<br>';
+                        echo $i . '. [' . $MyFileType[$i]['jenis'] . '] ' . $MyFileType[$i]['getfilename'] . '<br>';
                     }
+
+                    // $list_scan_db = self::saveScanDB($MyFileType, false);
                 }
                 // print itemNo, itemType(D/F) and itemname
                 $i++;
+                // $MyFileType = null;
             }
 
             if (isset($MyFileType)) {
-                $list_scan_db = self::saveScanDB($MyFileType);
+
+                $insert_data = collect($MyFileType);
+                $chunks = $insert_data->chunk(config('StorageConfig.main.CHUNKS_SCANDB', 10));
+                /*save ke DB berdasar chunks*/
+                foreach ($chunks as $chunk) {
+                    // dd($chunks, $insert_data, $MyFileType);
+                    self::saveScanDB($chunk, false);
+                }
+                // $list_scan_db = self::saveScanDB([], true);
+                // dd(1);
+                // $list_scan_db = self::saveScanDB($MyFileType);
                 // if (count($list_scan_db['dir']) > 0) {
                 //     // dd('scan folder '.$list_scan_db['dir'][0]['getrelativePath']);
                 //     $folder =  $list_scan_db['dir'][0]['getrelativePath'];
                 //     self::scanDir($request, $folder);
                 // }
-                if (count($list_scan_db['dir']) > 0) {
-                    echo ' <br> scan::' . $scan . 'init found ' . count($list_scan_db['dir']) . ' Folder <br>';
+                if ($list_scan_db_dir > 0) {
+                    echo ' <br> scanDB [' . $files_n . ']::' . $folder_cek . ' ' . $scan_cek . 'init found ' . count($list_scan_db['dir']) . ' Folder <br>';
                 } else {
-                    echo ' <br> scan::'  . ' finish <br>';
+                    echo ' <br> scanDirect [' . $files_n . ']:: ' . $folder_cek . ' '  . ' finish <br>';
                 }
             } else {
-                echo 'scan::' . $scan . count($list_scan_db['dir']) . '<br>' . $i . '. ';
+                echo 'scan[' . $files_n . ']::' . $folder_cek . ' ' . $scan_cek . count($list_scan_db['dir']) . '<br>';
+                echo  'index::' . $i . '<br>';
             }
         }
 
@@ -291,7 +337,8 @@ class StorageController extends Controller
             ->whereNotIn('getextension', $list_BL)
             ->limit(config('StorageConfig.main.UPLOAD_BATCH', 10))
             ->get();
-        echo  'run backup:: ' . ($backup ? 'TRUE' : 'FALSE    ') . ' total::' . count($files) . '<br>';
+
+        echo 'run backup:: ' . ($backup ? 'TRUE' : 'FALSE    ') . ' total::' . count($files) . '<br>';
         // dd($files->toArray());
         $sync = Http::pool(function (Pool $pool) use ($files, $backup, $path, $folder, $list_WL, $list_BL) {
             $index = 1;
@@ -378,7 +425,7 @@ class StorageController extends Controller
                     if (method_exists($respond, 'gethandlerContext')) {
                         self::log('user: sys url: ' . url()->current() . ' message: ' . $respond->gethandlerContext()["error"]);
                         BackupLokal::where('id', $key)
-                            ->update(['desc' => $respond->gethandlerContext()["error"]]);
+                            ->update(['description' => $respond->gethandlerContext()["error"]]);
                     } else {
                         if ($respond->successful()) {
                             $storage_sukses[$key][] = $respond->object()->data->url;
@@ -389,7 +436,7 @@ class StorageController extends Controller
                             $upload_status = 1;
                             $url_storage = @$respond->object()->data ? $respond->object()->data->url : null;
                             BackupLokal::where('id', $key)
-                                ->update(['upload' => $upload_status, 'url_storage' => $url_storage, 'desc' => $respond->body()]);
+                                ->update(['upload' => $upload_status, 'url_storage' => $url_storage, 'description' => $respond->body()]);
                         } else {
                             // dd($respond);
                             $storage_error[$key][] = $respond->object()->message;
@@ -400,7 +447,7 @@ class StorageController extends Controller
                             $upload_status = $respond->object()->code == 200 ? 1 : 0;
                             $url_storage = @$respond->object()->data ? $respond->object()->data->url : null;
                             BackupLokal::where('id', $key)
-                                ->update(['upload' => $upload_status, 'url_storage' => $url_storage, 'desc' => $respond->body()]);
+                                ->update(['upload' => $upload_status, 'url_storage' => $url_storage, 'description' => $respond->body()]);
                         };
                     };
                     // $files = File::allFiles($path);

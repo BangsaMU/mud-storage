@@ -15,6 +15,7 @@ return [
         'BACKUP_FILE_BL' => 'zip,rar',/*list extension yang tidak di ijinkan*/
         'ATTACH_METHOD' => 'fopen',/*[fopen,file_get_contents] dianjurkan file_get_contents default*/
         'UPLOAD_BATCH' => 10,/*set limit max upload per batch*/
+        'CHUNKS_SCANDB' => 10,/*set limit max upload per batch*/
         'URL' => env('STORAGE_URL', 'http://localhost:8080/api/upload'), /*harus diakhiri dengan / (slash) url untuk upload storage*/
         'CALL_BACK' => '',
     ),
